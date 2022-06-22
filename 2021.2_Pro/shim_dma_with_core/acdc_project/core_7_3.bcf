@@ -1,0 +1,14 @@
+_entry_point _main_init
+_symbol      _main _after _main_init
+_symbol      _main_init 0
+_reserved DMb      0x00000 0x20000 //Don't put data in code memory
+_symbol a_ping 0x39000 0x100
+_extern a_ping
+_symbol a_pong 0x39100 0x100
+_extern a_pong
+_symbol b_ping 0x39200 0x100
+_extern b_ping
+_symbol b_pong 0x39300 0x100
+_extern b_pong
+_stack    DM_stack 0x20000  0x400 //stack for core
+_reserved DMb 0x40000 0xc0000 // And everything else the core can't see

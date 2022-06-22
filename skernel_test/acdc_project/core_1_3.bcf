@@ -1,0 +1,15 @@
+_entry_point _main_init
+_symbol      _main _after _main_init
+_symbol      _main_init 0
+_reserved DMb      0x00000 0x20000 //Don't put data in code memory
+_symbol a 0x39000 0x1000
+_extern a
+_symbol b 0x3A000 0x1000
+_extern b
+_symbol acc 0x3B000 0x1000
+_extern acc
+_symbol c 0x3C000 0x1000
+_extern c
+_stack    DM_stack 0x20000  0x400 //stack for core
+_reserved DMb 0x40000 0xc0000 // And everything else the core can't see
+_include _file kernel.o
