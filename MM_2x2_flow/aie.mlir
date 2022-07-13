@@ -31,8 +31,7 @@ module @test_single_kernel {
   %buf74_1 = AIE.buffer(%t74) {sym_name = "buf74_1"} : memref<1024xi32>
   %buf74_2 = AIE.buffer(%t74) {sym_name = "buf74_2"} : memref<1024xi32>
 
-  AIE.broad_packet{
-    AIE.bp_source<%t72, "DMA" : 0>
+  AIE.broad_packet(%t72, "DMA" : 0){
     AIE.bp_id(0x0){
       AIE.bp_dest<%t73, "DMA" : 0>
       AIE.bp_dest<%t63, "DMA" : 0>
@@ -43,8 +42,7 @@ module @test_single_kernel {
     }
   }
 
-   AIE.broad_packet{
-    AIE.bp_source<%t72, "DMA" : 1>
+   AIE.broad_packet(%t72, "DMA" : 1){
     AIE.bp_id(0x2){
       AIE.bp_dest<%t73, "DMA" : 1>
       AIE.bp_dest<%t63, "DMA" : 1>
