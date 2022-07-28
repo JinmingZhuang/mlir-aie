@@ -45,12 +45,19 @@ struct AIEOpRemoval : public OpConversionPattern<MyOp> {
 // A port on a switch is identified by the tile and port name.
 typedef std::pair<Operation *, Port> PhysPort;
 
-int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
-                            Port sourcePort, int flowID,
-                            WireBundle destBundle) {
+typedef std::pair<std::pair<std::pair<int, int>, Port>, std::pair<int, int>>
+    tile_port;
 
-  if (connects.size() == 0)
-    return 0;
+llvm::SmallDenseMap<tile_port, SmallVector<Port, 8>, 32> source_record;
+int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
+                            Port sourcePort, int flowID, WireBundle destBundle,
+                            std::pair<int, int> curtile,
+                            std::pair<int, int> srtile, Port beginport) {
+
+  // if (connects.size() == 0){
+  //   source_record[std::make_pair(std::make_pair(srtile,
+  //   beginport),curtile)].push_back(std::make_pair(destBundle, 0)); return 0;
+  // }
 
   int numChannels;
 
@@ -62,35 +69,53 @@ int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
   else
     numChannels = 2;
 
-  // look for existing connect that has a matching destination
-  for (int i = 0; i < numChannels; i++) {
-    Port port = std::make_pair(destBundle, i);
-    int countFlows = 0;
-    for (auto conn : connects) {
-      Port connDest = conn.first.second;
-      // Since we are doing packet-switched routing, dest ports can be shared
-      // among multiple sources. Therefore, we don't need to worry about
-      // checking the same source
-      if (connDest == port)
-        countFlows++;
-    }
+  // Check if the connection is from the same beginning source
 
-    // Since a mask has 5 bits, there can only be 32 logical streams flow
-    // through a port
-    // TODO: what about packet-switched flow that uses nested header?
-    if (countFlows > 0 && countFlows < 32)
-      return i;
+  auto record_bundle = source_record.lookup(
+      std::make_pair(std::make_pair(srtile, beginport), curtile));
+  int flag = 1;
+  if (!record_bundle.empty()) {
+    auto i = std::find_if(
+        record_bundle.begin(), record_bundle.end(),
+        [destBundle](const Port &pt) { return pt.first == destBundle; });
+    if (i != record_bundle.end()) {
+      // look for existing connect that has a matching destination
+      Port port = *i;
+      flag = 0;
+
+      int countFlows = 0;
+      for (auto conn : connects) {
+        Port connDest = conn.first.second;
+        if (connDest == port)
+          countFlows++;
+      }
+      // Since a mask has 5 bits, there can only be 32 logical streams flow
+      // through a port
+      // TODO: what about packet-switched flow that uses nested header?
+      if (countFlows > 0 && countFlows < 32)
+        return port.second;
+    }
   }
 
-  // if not, look for available destination port
-  for (int i = 0; i < numChannels; i++) {
-    Port port = std::make_pair(destBundle, i);
-    SmallVector<Port, 8> ports;
-    for (auto connect : connects)
-      ports.push_back(connect.first.second);
+  if (flag) {
+    // if not, look for available destination port
+    for (int i = 0; i < numChannels; i++) {
+      Port port = std::make_pair(destBundle, i);
+      SmallVector<Port, 8> ports;
+      for (auto connect : connects)
+        ports.push_back(connect.first.second);
 
-    if (std::find(ports.begin(), ports.end(), port) == ports.end())
-      return i;
+      if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
+        source_record[std::make_pair(std::make_pair(srtile, beginport),
+                                     curtile)]
+            .insert(
+                source_record[std::make_pair(std::make_pair(srtile, beginport),
+                                             curtile)]
+                    .begin(),
+                port);
+        return i;
+      }
+    }
   }
 
   return -1;
@@ -136,6 +161,7 @@ void buildPSRoute(
     LLVM_DEBUG(llvm::dbgs() << "Tile " << xCur << " " << yCur << " ");
 
     auto curCoord = std::make_pair(xCur, yCur);
+    auto strCoord = std::make_pair(xSrc, ySrc);
     xLast = xCur;
     yLast = yCur;
 
@@ -161,8 +187,9 @@ void buildPSRoute(
 
     for (unsigned i = 0; i < moves.size(); i++) {
       WireBundle move = moves[i];
-      curChannel = getAvailableDestChannel(switchboxes[curCoord], lastPort,
-                                           flowID, move);
+      curChannel =
+          getAvailableDestChannel(switchboxes[curCoord], lastPort, flowID, move,
+                                  curCoord, strCoord, sourcePort);
       if (curChannel == -1)
         continue;
 
