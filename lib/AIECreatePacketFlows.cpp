@@ -45,19 +45,22 @@ struct AIEOpRemoval : public OpConversionPattern<MyOp> {
 // A port on a switch is identified by the tile and port name.
 typedef std::pair<Operation *, Port> PhysPort;
 
-typedef std::pair<std::pair<std::pair<int, int>, Port>, std::pair<int, int>>
-    tile_port;
+typedef std::pair<std::pair<std::pair<int, int>, Port>,std::pair<int, int>> tile_port;
 
+//record the source/destination tile of the current switchbox tile
 llvm::SmallDenseMap<tile_port, SmallVector<Port, 8>, 32> source_record;
+llvm::SmallDenseMap<tile_port, SmallVector<Port, 8>, 32> dest_record;
 int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
                             Port sourcePort, int flowID, WireBundle destBundle,
-                            std::pair<int, int> curtile,
-                            std::pair<int, int> srtile, Port beginport) {
+                            std::pair<int, int> curtile, std::pair<int, int> srtile,
+                            std::pair<int, int> desttile,Port beginport,
+                            Port endport) {
 
-  // if (connects.size() == 0){
-  //   source_record[std::make_pair(std::make_pair(srtile,
-  //   beginport),curtile)].push_back(std::make_pair(destBundle, 0)); return 0;
-  // }
+  //if (connects.size() == 0){
+  //  source_record[std::make_pair(std::make_pair(srtile, beginport),curtile)].push_back(std::make_pair(destBundle, 0));
+  //  return 0;
+  //}
+    
 
   int numChannels;
 
@@ -69,19 +72,64 @@ int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
   else
     numChannels = 2;
 
-  // Check if the connection is from the same beginning source
+  //check if the destination is a shimTile
+  //If it is, then the streams can share the same switch port
+  if(desttile.second==0){
+    //Find if the stream with same shimtile as destination exsist in this switchbox
+    auto record_dest_bundle=dest_record.lookup(std::make_pair(std::make_pair(desttile, endport),curtile));
+    int flag=1;
+    if(!record_dest_bundle.empty()){
+      auto i = std::find_if( record_dest_bundle.begin(), record_dest_bundle.end(),[destBundle] ( const Port &pt) { return pt.first == destBundle ; } ) ;
+      if(i != record_dest_bundle.end()){
+        // look for existing connect that has a matching destination
+        Port port=*i;
+        flag=0;
+    
+        int countFlows = 0;
+        for (auto conn : connects) {
+          Port connDest = conn.first.second;
+          if (connDest == port)
+            countFlows++;
+        }
+        // Since a mask has 5 bits, there can only be 32 logical streams flow
+        // through a port
+        // TODO: what about packet-switched flow that uses nested header?
+        if (countFlows > 0 && countFlows < 32)
+          return port.second;
+    
+      }
+    }
+                               
+    if(flag){
+      // if not, look for available destination port
+      for (int i = 0; i < numChannels; i++) {
+        Port port = std::make_pair(destBundle, i);
+        SmallVector<Port, 8> ports;
+        for (auto connect : connects)
+          ports.push_back(connect.first.second);
+    
+        if (std::find(ports.begin(), ports.end(), port) == ports.end()){
+          dest_record[std::make_pair(std::make_pair(desttile, endport),curtile)].insert(dest_record[std::make_pair(std::make_pair(desttile, endport),curtile)].begin(),port);
+          return i;
+        }
+    
+      }
+    }
+    
+    return -1;
+  }
 
-  auto record_bundle = source_record.lookup(
-      std::make_pair(std::make_pair(srtile, beginport), curtile));
-  int flag = 1;
-  if (!record_bundle.empty()) {
-    auto i = std::find_if(
-        record_bundle.begin(), record_bundle.end(),
-        [destBundle](const Port &pt) { return pt.first == destBundle; });
-    if (i != record_bundle.end()) {
+  //if the destination is not a shimTile
+  //Check if the connection is from the same beginning source
+  
+  auto record_bundle=source_record.lookup(std::make_pair(std::make_pair(srtile, beginport),curtile));
+  int flag=1;
+  if(!record_bundle.empty()){
+    auto i = std::find_if( record_bundle.begin(), record_bundle.end(),[destBundle] ( const Port &pt) { return pt.first == destBundle ; } ) ;
+    if(i != record_bundle.end()){
       // look for existing connect that has a matching destination
-      Port port = *i;
-      flag = 0;
+      Port port=*i;
+      flag=0;
 
       int countFlows = 0;
       for (auto conn : connects) {
@@ -94,10 +142,11 @@ int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
       // TODO: what about packet-switched flow that uses nested header?
       if (countFlows > 0 && countFlows < 32)
         return port.second;
+
     }
   }
-
-  if (flag) {
+                             
+  if(flag){
     // if not, look for available destination port
     for (int i = 0; i < numChannels; i++) {
       Port port = std::make_pair(destBundle, i);
@@ -105,16 +154,11 @@ int getAvailableDestChannel(SmallVector<std::pair<Connect, int>, 8> &connects,
       for (auto connect : connects)
         ports.push_back(connect.first.second);
 
-      if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
-        source_record[std::make_pair(std::make_pair(srtile, beginport),
-                                     curtile)]
-            .insert(
-                source_record[std::make_pair(std::make_pair(srtile, beginport),
-                                             curtile)]
-                    .begin(),
-                port);
+      if (std::find(ports.begin(), ports.end(), port) == ports.end()){
+        source_record[std::make_pair(std::make_pair(srtile, beginport),curtile)].insert(source_record[std::make_pair(std::make_pair(srtile, beginport),curtile)].begin(),port);
         return i;
       }
+
     }
   }
 
@@ -134,6 +178,22 @@ void update_coordinates(int &xCur, int &yCur, WireBundle move) {
   } else if (move == WireBundle::South) {
     // xCur = xCur;
     yCur = yCur - 1;
+  }
+}
+
+void moveback_coordinates(int &xCur, int &yCur, WireBundle move) {
+  if (move == WireBundle::East) {
+    xCur = xCur - 1;
+    // yCur = yCur;
+  } else if (move == WireBundle::West) {
+    xCur = xCur + 1;
+    // yCur = yCur;
+  } else if (move == WireBundle::North) {
+    // xCur = xCur;
+    yCur = yCur - 1;
+  } else if (move == WireBundle::South) {
+    // xCur = xCur;
+    yCur = yCur + 1;
   }
 }
 
@@ -161,7 +221,8 @@ void buildPSRoute(
     LLVM_DEBUG(llvm::dbgs() << "Tile " << xCur << " " << yCur << " ");
 
     auto curCoord = std::make_pair(xCur, yCur);
-    auto strCoord = std::make_pair(xSrc, ySrc);
+    auto srcCoord = std::make_pair(xSrc, ySrc);
+    auto destCoord = std::make_pair(xDest, yDest);
     xLast = xCur;
     yLast = yCur;
 
@@ -187,20 +248,26 @@ void buildPSRoute(
 
     for (unsigned i = 0; i < moves.size(); i++) {
       WireBundle move = moves[i];
-      curChannel =
-          getAvailableDestChannel(switchboxes[curCoord], lastPort, flowID, move,
-                                  curCoord, strCoord, sourcePort);
+      curChannel = getAvailableDestChannel(switchboxes[curCoord], lastPort,
+                                           flowID, move, curCoord, srcCoord,destCoord,sourcePort,destPort);
       if (curChannel == -1)
         continue;
 
-      if (move == lastBundle)
+      if (move == lastBundle){
+        curChannel = -1;
         continue;
+      }
+        
 
       update_coordinates(xCur, yCur, move);
 
       if (std::find(congestion.begin(), congestion.end(),
-                    std::make_pair(xCur, yCur)) != congestion.end())
+                    std::make_pair(xCur, yCur)) != congestion.end()){
+        moveback_coordinates(xCur, yCur, move);
+        curChannel = -1;
         continue;
+      }
+        
 
       curBundle = move;
       lastBundle = (move == WireBundle::East)    ? WireBundle::West
