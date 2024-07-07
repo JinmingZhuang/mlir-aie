@@ -13,6 +13,11 @@ aie.buffer operations without an address.  This pass determines
 updates each aie.buffer operation without an address to have a
 well-defined address.  This enables later passes to have a
 consistent view of the memory map of a system.
+
+#### Options
+```
+-basic-alloc : Flag to enable the basic sequential allocation scheme (not bank-aware).
+```
 ### `-aie-assign-lock-ids`
 
 _Assigns the lockIDs of locks that do not have IDs._
@@ -25,18 +30,21 @@ _Canonicalize Designs to include a toplevel device_
 This pass inserts a toplevel device operation in designs that do not have one.
 This allows us to support backwards compatability for older models targetting the VC1902
 device without explicit device operations. 
-### `-aie-create-packet-flows`
-
-_Route aie.packetflow operations through switchboxes_
-
-Replace each aie.packetflow operation with an equivalent set of aie.switchbox and aie.wire
-operations.  
 ### `-aie-create-pathfinder-flows`
 
-_Route aie.flow operations through switchboxes with Pathfinder algorithm_
+_Route aie.flow and aie.packetflow operations through switchboxes_
 
-Replace each aie.flow operation with an equivalent set of aie.switchbox and aie.wire
-operations. Uses Pathfinder congestion-aware algorithm. 
+Uses Pathfinder congestion-aware algorithm. 
+Each aie.flow is replaced with aie.connect operation.
+Each aie.packetflow is replace with the set of aie.amsel, aie.masterset 
+and aie.packet_rules operations.
+
+#### Options
+```
+-route-circuit : Flag to enable aie.flow lowering.
+-route-packet  : Flag to enable aie.packetflow lowering.
+-keep-flow-op  : Flag to not erase aie.flow/packetflow after its lowering,used for routing visualization.
+```
 ### `-aie-find-flows`
 
 _Recover flows from switchbox configuration_

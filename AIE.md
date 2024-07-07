@@ -92,6 +92,7 @@ Interfaces: `OpAsmOpInterface`, `TileElement`
 <tr><td><code>sym_name</code></td><td>::mlir::StringAttr</td><td>string attribute</td></tr>
 <tr><td><code>address</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute</td></tr>
 <tr><td><code>initial_value</code></td><td>::mlir::ElementsAttr</td><td>constant vector/tensor attribute</td></tr>
+<tr><td><code>mem_bank</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute</td></tr>
 </table>
 
 #### Operands:
@@ -225,7 +226,8 @@ Traits: `HasParent<SwitchboxOp, ShimMuxOp>`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>source_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 <tr><td><code>dest_bundle</code></td><td>xilinx::AIE::WireBundleAttr</td><td><details><summary>Bundle of wires</summary>{{% markdown %}}Enum cases:
 * Core (`Core`)
@@ -237,7 +239,8 @@ Traits: `HasParent<SwitchboxOp, ShimMuxOp>`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>dest_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -370,7 +373,11 @@ Interfaces: `AIETarget`
 * xcvc1902 (`xcvc1902`)
 * xcve2302 (`xcve2302`)
 * xcve2802 (`xcve2802`)
-* ipu (`ipu`){{% /markdown %}}</details></td></tr>
+* npu1 (`npu1`)
+* npu1_1col (`npu1_1col`)
+* npu1_2col (`npu1_2col`)
+* npu1_3col (`npu1_3col`)
+* npu1_4col (`npu1_4col`){{% /markdown %}}</details></td></tr>
 </table>
 
 
@@ -755,7 +762,8 @@ Example:
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>source_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 <tr><td><code>dest_bundle</code></td><td>xilinx::AIE::WireBundleAttr</td><td><details><summary>Bundle of wires</summary>{{% markdown %}}Enum cases:
 * Core (`Core`)
@@ -767,7 +775,8 @@ Example:
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>dest_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -938,7 +947,8 @@ Interfaces: `InferTypeOpInterface`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>dest_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -1198,6 +1208,7 @@ Interfaces: `Symbol`
 <tr><td><code>elemType</code></td><td>::mlir::TypeAttr</td><td>type attribute of AIE objectFifo type</td></tr>
 <tr><td><code>dimensionsToStream</code></td><td>::xilinx::AIE::BDDimLayoutArrayAttr</td><td></td></tr>
 <tr><td><code>dimensionsFromStreamPerConsumer</code></td><td>::xilinx::AIE::BDDimLayoutArrayArrayAttr</td><td></td></tr>
+<tr><td><code>via_DMA</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
 </table>
 
 #### Operands:
@@ -1513,7 +1524,8 @@ Traits: `HasParent<PacketFlowOp>`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -1593,7 +1605,8 @@ Traits: `SingleBlockImplicitTerminator<EndOp>`, `SingleBlock`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>source_channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -1630,7 +1643,8 @@ Traits: `HasParent<PacketFlowOp>`
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>channel</code></td><td>::mlir::IntegerAttr</td><td>32-bit signless integer attribute whose minimum value is 0</td></tr>
 </table>
 
@@ -2009,7 +2023,11 @@ to it.
 Note that row 0 of the Tile array is different from other rows, since it models the shim interface between
 the AIE array proper and the PL.  The South-West/Lower Right most core exists in Tile(0,1)
 
-Interfaces: `FlowEndPoint`, `InferTypeOpInterface`, `OpAsmOpInterface`
+Traits: `AlwaysSpeculatableImplTrait`
+
+Interfaces: `ConditionallySpeculatable`, `FlowEndPoint`, `InferTypeOpInterface`, `NoMemoryEffect (MemoryEffectOpInterface)`, `OpAsmOpInterface`
+
+Effects: `MemoryEffects::Effect{}`
 
 #### Attributes:
 
@@ -2095,7 +2113,8 @@ represented by an [aie.tile](#aietile-aietileop) operation.
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 <tr><td><code>dest_bundle</code></td><td>xilinx::AIE::WireBundleAttr</td><td><details><summary>Bundle of wires</summary>{{% markdown %}}Enum cases:
 * Core (`Core`)
 * DMA (`DMA`)
@@ -2106,7 +2125,8 @@ represented by an [aie.tile](#aietile-aietileop) operation.
 * East (`East`)
 * PLIO (`PLIO`)
 * NOC (`NOC`)
-* Trace (`Trace`){{% /markdown %}}</details></td></tr>
+* Trace (`Trace`)
+* Ctrl (`Ctrl`){{% /markdown %}}</details></td></tr>
 </table>
 
 #### Operands:
